@@ -16,6 +16,9 @@ public class MainController {
 		// 週と日を格納する二次元配列を用意する
 		List<List<LocalDate>> month = new ArrayList<>();
 
+		// 1週間分のLocalDateを格納するListを用意する
+		List<LocalDate> week = new ArrayList<>();
+
 		return "main";
 	}
 
