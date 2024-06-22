@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class EditController {
 
-	@GetMapping("/testedit")
+	@GetMapping("/edit")
 	public String edit() {
 		return "edit";
 	}
