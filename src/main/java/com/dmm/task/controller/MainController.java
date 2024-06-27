@@ -31,6 +31,7 @@ public class MainController {
 	private TasksRepository repo;
 
 	// カレンダー表示用
+	@GetMapping("/main")
 	public String main(Model model, @AuthenticationPrincipal AccountUserDetails user,
 			@DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) { // ★
 
