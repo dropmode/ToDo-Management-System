@@ -3,10 +3,8 @@ package com.dmm.task.controller;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,9 +31,9 @@ public class MainController {
 	// カレンダー表示用
 	@GetMapping("/main")
 	public String main(Model model, @AuthenticationPrincipal AccountUserDetails user,
-			@DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) { // ★
+			@DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
 
-		// 週と日を格納する二次元配列を用意する
+		// 週と日を格納する二次元のListを用意する
 		List<List<LocalDate>> month = new ArrayList<>();
 
 		// 1週間分のLocalDateを格納するListを用意する
@@ -44,7 +42,7 @@ public class MainController {
 		// 日にちを格納する変数を用意する
 		LocalDate day, start, end;
 
-		// ★今月 or 前月 or 翌月を判定
+		// 今月 or 前月 or 翌月を判定
 		if (date == null) {
 			// その月の1日を取得する
 			day = LocalDate.now(); // 現在日時を取得
@@ -53,25 +51,18 @@ public class MainController {
 			day = date; // 引数で受け取った日付をそのまま使う
 		}
 
-	    // カレンダーの ToDo直下に「yyyy年mm月」と表示
-	    model.addAttribute("month", day.getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault()));
+		// カレンダーの ToDo直下に「yyyy年mm月」と表示
+		model.addAttribute("month", day.format(DateTimeFormatter.ofPattern("yyyy年MM月")));
 
-	    // ★前月のリンク
-	    model.addAttribute("prev", day.minusMonths(1));
+		// 前月のリンク
+		model.addAttribute("prev", day.minusMonths(1));
 
-	    // ★翌月のリンク
-	    model.addAttribute("next", day.plusMonths(1));
-		
-		//その月の1日を取得
-		day = LocalDate.now(); // 現在日時を取得
-		day = LocalDate.of(day.getYear(), day.getMonthValue(), 1); // 現在日時からその月の1日を取得
+		// 翌月のリンク
+		model.addAttribute("next", day.plusMonths(1));
 
-	    // ★
-	    model.addAttribute("month", day.format(DateTimeFormatter.ofPattern("yyyy年MM月")));
-		
 		// 前月分の LocalDateを求める
 		DayOfWeek w = day.getDayOfWeek(); // 当該日の曜日を取得
-		day = day.minusDays(w.getValue()); // 1日からマイナスして 5/26を取得
+		day = day.minusDays(w.getValue()); // 1日からマイナスして 7/30を取得
 		start = day;
 
 		// 1週目（1日ずつ増やして 週のリストに格納していく）
@@ -83,8 +74,12 @@ public class MainController {
 
 		week = new ArrayList<>(); // 次週のリストを新しくつくる
 
-		// 2週目（「7」から始めているのは2週目だから）
-		for (int i = 7; i <= day.lengthOfMonth(); i++) {
+		// 2週目（★）
+		int leftOfMonth = day.lengthOfMonth() - day.getDayOfMonth();
+		leftOfMonth = day.lengthOfMonth() - leftOfMonth;
+		leftOfMonth = 7 - leftOfMonth;
+
+		for (int i = 7; i <= day.lengthOfMonth() + leftOfMonth; i++) {
 			week.add(day); // 週のリストへ格納
 
 			w = day.getDayOfWeek();
@@ -95,12 +90,20 @@ public class MainController {
 
 			day = day.plusDays(1); // 1日進める
 		}
-		// 最終週の翌月分
-		w = day.getDayOfWeek();
-		for (int i = 1; i < 7 - w.getValue(); i++) {
+
+		// 最終週の翌月分（★）
+		DayOfWeek endofmonth = day.getDayOfWeek();
+		int next = 7 - endofmonth.getValue();
+		if (next == 0) {
+			next = 7;
+		}
+		for (int n = 1; n <= next; n++) {
 			week.add(day);
 			day = day.plusDays(1);
+
 		}
+		month.add(week);
+
 		end = day;
 
 		// 日付とタスクを紐付けるコレクション
@@ -116,20 +119,18 @@ public class MainController {
 			list = repo.findByDateBetween(start.atTime(0, 0), end.atTime(0, 0), user.getName());
 		}
 
-		// ★取得したタスクをコレクションに追加
+		// 取得したタスクをコレクションに追加
 		for (Tasks task : list) {
 			tasks.add(task.getDate().toLocalDate(), task);
 		}
 
-		// ★コレクションのデータをHTMLに連携
-		model.addAttribute("tasks", tasks);
-
-		// ★カレンダーのデータをHTMLに連携
+		// カレンダーのデータをHTMLに連携
 		model.addAttribute("matrix", month);
 
 		// コレクションのデータをHTMLに連携
 		model.addAttribute("tasks", tasks);
 
+		// HTMLを表示
 		return "main";
 	}
 
