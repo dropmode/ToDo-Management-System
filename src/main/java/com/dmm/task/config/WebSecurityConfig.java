@@ -51,10 +51,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.permitAll(); // 全ユーザに対して許可
 	}
 
+	// ★
 	@Override
 	public void configure(WebSecurity web) throws Exception {
-		// 画像、JavaScript、cssは認可の対象外とする
+		// 画像、JavaScript、CSSは認可の対象外とする
 		web.debug(false).ignoring().antMatchers("/images/**", "/js/**", "/css/**");
-
 	}
+
 }

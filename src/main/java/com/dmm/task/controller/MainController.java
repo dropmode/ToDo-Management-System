@@ -2,8 +2,11 @@ package com.dmm.task.controller;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -28,8 +31,8 @@ public class MainController {
 	private TasksRepository repo;
 
 	// カレンダー表示用
-	@GetMapping("/main")
-	public String main(Model model, @AuthenticationPrincipal AccountUserDetails user) {
+	public String main(Model model, @AuthenticationPrincipal AccountUserDetails user,
+			@DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) { // ★
 
 		// 週と日を格納する二次元配列を用意する
 		List<List<LocalDate>> month = new ArrayList<>();
@@ -40,9 +43,31 @@ public class MainController {
 		// 日にちを格納する変数を用意する
 		LocalDate day, start, end;
 
+		// ★今月 or 前月 or 翌月を判定
+		if (date == null) {
+			// その月の1日を取得する
+			day = LocalDate.now(); // 現在日時を取得
+			day = LocalDate.of(day.getYear(), day.getMonthValue(), 1); // 現在日時からその月の1日を取得
+		} else {
+			day = date; // 引数で受け取った日付をそのまま使う
+		}
+
+	    // カレンダーの ToDo直下に「yyyy年mm月」と表示
+	    model.addAttribute("month", day.getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault()));
+
+	    // ★前月のリンク
+	    model.addAttribute("prev", day.minusMonths(1));
+
+	    // ★翌月のリンク
+	    model.addAttribute("next", day.plusMonths(1));
+		
+		//その月の1日を取得
 		day = LocalDate.now(); // 現在日時を取得
 		day = LocalDate.of(day.getYear(), day.getMonthValue(), 1); // 現在日時からその月の1日を取得
 
+	    // ★
+	    model.addAttribute("month", day.format(DateTimeFormatter.ofPattern("yyyy年MM月")));
+		
 		// 前月分の LocalDateを求める
 		DayOfWeek w = day.getDayOfWeek(); // 当該日の曜日を取得
 		day = day.minusDays(w.getValue()); // 1日からマイナスして 5/26を取得
@@ -128,5 +153,40 @@ public class MainController {
 		return "redirect:/main";
 
 	}
+	
+	// ★タスク編集画面の表示用
+	@GetMapping("/main/edit/{id}")
+	public String edit(Model model, @PathVariable Integer id) {
+		Tasks task = repo.getById(id);
+		model.addAttribute("task", task);
+		return "edit";
+	}
 
+	  // ★タスク編集用
+	@PostMapping("/main/edit/{id}")
+	public String editPost(Model model, TaskForm form, @PathVariable Integer id, @AuthenticationPrincipal AccountUserDetails user) {
+	    Tasks task = new Tasks();
+	    task.setId(id);
+
+	    task.setName(user.getName());
+	    task.setTitle(form.getTitle());
+	    task.setText(form.getText());
+	    task.setDate(form.getDate().atTime(0, 0));
+	    task.setDone(form.isDone());
+
+	    repo.save(task);
+
+	    return "redirect:/main";
+	}
+	
+	  // ★タスク削除用
+	@PostMapping("/main/delete/{id}")
+	public String deletePost(Model model, TaskForm form, @PathVariable Integer id) {
+	    Tasks task = new Tasks();
+	    task.setId(id);
+
+	    repo.delete(task);
+
+	    return "redirect:/main";
+	}
 }
